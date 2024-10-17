@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sensors_plus/sensors_plus.dart';
-import 'dart:math';
+import 'sensoren.dart';
+import 'gps.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,112 +12,56 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Sensor Data Demo',
+      title: 'Sensor und GPS Demo',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const SensorHomePage(),
+      home: const HomePage(),
     );
   }
 }
 
-class SensorHomePage extends StatefulWidget {
-  const SensorHomePage({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
   // ignore: library_private_types_in_public_api
-  _SensorHomePageState createState() => _SensorHomePageState();
+  _HomePageState createState() => _HomePageState();
 }
 
-class _SensorHomePageState extends State<SensorHomePage> {
-  double accelX = 0.0, accelY = 0.0, accelZ = 0.0;
-  double gyroX = 0.0, gyroY = 0.0, gyroZ = 0.0;
-  double magX = 0.0, magY = 0.0, magZ = 0.0;
+class _HomePageState extends State<HomePage> {
+  int _selectedIndex = 0;
 
-  // Variablen für Neigung
-  double pitch = 0.0; // rechts links neigen
-  double roll = 0.0;  // vorne hinten neigen
+  //Seiten einbinden
+  final List<Widget> _pages = [
+    const SensorPage(),
+    const GpsPage(),
+  ];
 
-  @override
-  void initState() {
-    super.initState();
-
-    //Beschleunigungssensor (Accelerometer)
-    accelerometerEvents.listen((AccelerometerEvent event) {
-      setState(() {
-        accelX = event.x;
-        accelY = event.y;
-        accelZ = event.z;
-
-        // Berechnung von Pitch und Roll
-        pitch = atan2(event.y, sqrt(event.x * event.x + event.z * event.z)) * (180 / pi);
-        roll = atan2(event.x, sqrt(event.y * event.y + event.z * event.z)) * (180 / pi);
-      });
-    });
-
-    //Gyroskop
-    gyroscopeEvents.listen((GyroscopeEvent event) {
-      setState(() {
-        gyroX = event.x;
-        gyroY = event.y;
-        gyroZ = event.z;
-      });
-    });
-
-    //Magnetometer
-    magnetometerEvents.listen((MagnetometerEvent event) {
-      setState(() {
-        magX = event.x;
-        magY = event.y;
-        magZ = event.z;
-      });
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mehrere Sensoren auslesen'),
-      ),
-      body: SingleChildScrollView(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              const Text(
-                'Beschleunigungssensor (Accelerometer)',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              Text('X: ${accelX.toStringAsFixed(2)}'),
-              Text('Y: ${accelY.toStringAsFixed(2)}'),
-              Text('Z: ${accelZ.toStringAsFixed(2)}'),
-              const SizedBox(height: 20),
-              const Text(
-                'Gyroskop (Gyroscope)',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              Text('X: ${gyroX.toStringAsFixed(2)}'),
-              Text('Y: ${gyroY.toStringAsFixed(2)}'),
-              Text('Z: ${gyroZ.toStringAsFixed(2)}'),
-              const SizedBox(height: 20),
-              const Text(
-                'Magnetometer',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              Text('X: ${magX.toStringAsFixed(2)}'),
-              Text('Y: ${magY.toStringAsFixed(2)}'),
-              Text('Z: ${magZ.toStringAsFixed(2)}'),
-              const SizedBox(height: 20),
-              const Text(
-                'Neigung',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              Text('Nickwinkel (Pitch): ${pitch.toStringAsFixed(2)}°'),
-              Text('Rollwinkel (Roll): ${roll.toStringAsFixed(2)}°'),
-            ],
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.sensors),
+            label: 'Sensoren',
           ),
-        ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.location_on),
+            label: 'GPS',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.blue,
+        onTap: _onItemTapped,
       ),
     );
   }

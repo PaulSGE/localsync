@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'dart:math';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -20,6 +21,11 @@ class _SensorPageState extends State<SensorPage> {
   double magX = 0.0, magY = 0.0, magZ = 0.0;
   double pitch = 0.0; //Lenkradneigung
   double roll = 0.0; //nach vorne / zu einem kippen
+
+  //Fuer das Diagramm
+  List<double> accelXData = [];
+  List<double> accelYData = [];
+  List<double> accelZData = [];
 
   String _accelerometer_data = "";
   String _gyroscope_data = "";
@@ -100,6 +106,15 @@ class _SensorPageState extends State<SensorPage> {
               (180 / pi);
           roll = atan2(event.x, sqrt(event.y * event.y + event.z * event.z)) *
               (180 / pi);
+
+          //Diagramm
+        if (accelXData.length > 20) accelXData.removeAt(0); // Limit auf 20 Punkte
+        if (accelYData.length > 20) accelYData.removeAt(0);
+        if (accelZData.length > 20) accelZData.removeAt(0);
+
+        accelXData.add(accelX);
+        accelYData.add(accelY);
+        accelZData.add(accelZ);
         });
       }
     });
@@ -305,6 +320,45 @@ class _SensorPageState extends State<SensorPage> {
                         MaterialStatePropertyAll<Color>(Color(0xffffffff))),
                 onPressed: _overwriteStorage,
                 child: Text("Daten Löschen"),
+              ),
+                            const Text(
+                'Beschleunigungssensor (Accelerometer)',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+               // Container für das Diagramm
+              Container(
+                height: 200,
+                padding: const EdgeInsets.all(16.0),
+                child: SfCartesianChart(
+                  primaryXAxis: NumericAxis(),
+                  primaryYAxis: NumericAxis(),
+series: <LineSeries<double, int>>[
+  // Serie für die X-Achse des Accelerometers (Rot)
+  LineSeries<double, int>(
+    dataSource: accelXData,
+    xValueMapper: (_, index) => index,
+    yValueMapper: (double value, _) => value,
+    color: Colors.red, // X-Achse in Rot
+    name: 'Accel X',
+  ),
+  // Serie für die Y-Achse des Accelerometers (Grün)
+  LineSeries<double, int>(
+    dataSource: accelYData,
+    xValueMapper: (_, index) => index,
+    yValueMapper: (double value, _) => value,
+    color: Colors.green, // Y-Achse in Grün
+    name: 'Accel Y',
+  ),
+  // Serie für die Z-Achse des Accelerometers (Blau)
+  LineSeries<double, int>(
+    dataSource: accelZData,
+    xValueMapper: (_, index) => index,
+    yValueMapper: (double value, _) => value,
+    color: Colors.blue, // Z-Achse in Blau
+    name: 'Accel Z',
+                ),
+              ],
+              ),
               ),
             ],
           ),

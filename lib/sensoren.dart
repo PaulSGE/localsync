@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use, non_constant_identifier_names, library_private_types_in_public_api
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -11,7 +13,6 @@ class SensorPage extends StatefulWidget {
   const SensorPage({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
   _SensorPageState createState() => _SensorPageState();
 }
 
@@ -21,11 +22,6 @@ class _SensorPageState extends State<SensorPage> {
   double magX = 0.0, magY = 0.0, magZ = 0.0;
   double pitch = 0.0; //Lenkradneigung
   double roll = 0.0; //nach vorne / zu einem kippen
-
-  //Fuer das Diagramm - Datenspeicher 
-  List<double> accelXData = [];
-  List<double> accelYData = [];
-  List<double> accelZData = [];
 
   String _accelerometer_data = "";
   String _gyroscope_data = "";
@@ -37,14 +33,25 @@ class _SensorPageState extends State<SensorPage> {
   bool magnet_on = true;
   bool tilt_on = true;
 
-  //Neue Variablen zur Frequenzsteuerung
-  double accelFrequency = 50.0; // Start-Frequenz in Hz für Accelerometer
-  double gyroFrequency = 50.0;  // Start-Frequenz in Hz für Gyroskop
-  double magnetFrequency = 50.0; // Start-Frequenz in Hz für Magnetometer
-
   late StreamSubscription<AccelerometerEvent> _accelerometerSubscription;
   late StreamSubscription<GyroscopeEvent> _gyroscopeSubscription;
   late StreamSubscription<MagnetometerEvent> _magnetometerSubscription;
+
+  int _samplingInterval = 1000;
+  Timer? _updateTimer;
+
+  // Daten für Pitch and Roll für das Chart
+  final List<ChartData> _chartData = [];
+  final int _chartDataLimit = 100;
+  double _time = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStorage();
+    _initSensorListeners();
+    _startUpdatingSensorData();
+  }
 
   Future<void> _loadStorage() async {
     final prefs = await SharedPreferences.getInstance();
@@ -75,7 +82,7 @@ class _SensorPageState extends State<SensorPage> {
       prefs.setString('mag_data', magnetString);
       prefs.setString('tilt_data', tiltString);
 
-      _loadStorage(); // update displayed data
+      _loadStorage();
     });
   }
 
@@ -87,118 +94,68 @@ class _SensorPageState extends State<SensorPage> {
       prefs.setString('mag_data', "-");
       prefs.setString('tilt_data', "-");
 
-      _loadStorage(); // update displayed data
+      _loadStorage();
     });
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _loadStorage();
-
-    //Init verschiedene Sensoren
-    //Acceleromenter
+  void _initSensorListeners() {
     _accelerometerSubscription =
         accelerometerEvents.listen((AccelerometerEvent event) {
-      if (mounted) {
-        setState(() {
-          accelX = event.x;
-          accelY = event.y;
-          accelZ = event.z;
-
-          //Gelesene Neigungen umrechnen
-          pitch = atan2(event.y, sqrt(event.x * event.x + event.z * event.z)) *
-              (180 / pi);
-          roll = atan2(event.x, sqrt(event.y * event.y + event.z * event.z)) *
-              (180 / pi);
-
-          //Diagramm
-        if (accelXData.length > 20) accelXData.removeAt(0); // Limit auf 20 Punkte
-        if (accelYData.length > 20) accelYData.removeAt(0);
-        if (accelZData.length > 20) accelZData.removeAt(0);
-
-        accelXData.add(accelX);
-        accelYData.add(accelY);
-        accelZData.add(accelZ);
-        });
-      }
-    });
-
-    //Gyroskop
-    _gyroscopeSubscription = gyroscopeEvents.listen((GyroscopeEvent event) {
-      if (mounted) {
-        setState(() {
-          gyroX = event.x;
-          gyroY = event.y;
-          gyroZ = event.z;
-        });
-      }
-    });
-
-    //Magnetometer
-    _magnetometerSubscription =
-        magnetometerEvents.listen((MagnetometerEvent event) {
-      if (mounted) {
-        setState(() {
-          magX = event.x;
-          magY = event.y;
-          magZ = event.z;
-        });
-      }
-    });
-  }
-
-   //Methode zur Frequenzaktualisierung
-  void _updateFrequency(StreamSubscription sensorSubscription, double frequency, Function startSubscription) {
-    sensorSubscription.cancel(); //Neustart der Sensoren
-    Future.delayed(Duration(milliseconds: (1000 / frequency).round()), startSubscription as FutureOr Function()?);
-  }
-
-   void _startAccelerometerSubscription() {
-    _accelerometerSubscription = accelerometerEvents.listen((AccelerometerEvent event) {
       if (mounted && accel_on) {
-        setState(() {
-          accelX = event.x;
-          accelY = event.y;
-          accelZ = event.z;
+        accelX = event.x;
+        accelY = event.y;
+        accelZ = event.z;
 
-          pitch = atan2(event.y, sqrt(event.x * event.x + event.z * event.z)) * (180 / pi);
-          roll = atan2(event.x, sqrt(event.y * event.y + event.z * event.z)) * (180 / pi);
-
-          if (accelXData.length > 20) accelXData.removeAt(0); // Limit auf 20 Punkte
-          if (accelYData.length > 20) accelYData.removeAt(0);
-          if (accelZData.length > 20) accelZData.removeAt(0);
-
-          accelXData.add(accelX);
-          accelYData.add(accelY);
-          accelZData.add(accelZ);
-        });
+        _calculatePitchAndRoll();
       }
     });
-  }
 
-   void _startGyroscopeSubscription() {
     _gyroscopeSubscription = gyroscopeEvents.listen((GyroscopeEvent event) {
       if (mounted && gyro_on) {
-        setState(() {
-          gyroX = event.x;
-          gyroY = event.y;
-          gyroZ = event.z;
-        });
+        gyroX = event.x;
+        gyroY = event.y;
+        gyroZ = event.z;
+      }
+    });
+
+    _magnetometerSubscription =
+        magnetometerEvents.listen((MagnetometerEvent event) {
+      if (mounted && magnet_on) {
+        magX = event.x;
+        magY = event.y;
+        magZ = event.z;
       }
     });
   }
 
-  void _startMagnetometerSubscription() {
-    _magnetometerSubscription = magnetometerEvents.listen((MagnetometerEvent event) {
-      if (mounted && magnet_on) {
-        setState(() {
-          magX = event.x;
-          magY = event.y;
-          magZ = event.z;
-        });
+  void _calculatePitchAndRoll() {
+    pitch = atan2(accelY, sqrt(accelX * accelX + accelZ * accelZ)) * (180 / pi);
+    roll = atan2(accelX, sqrt(accelY * accelY + accelZ * accelZ)) * (180 / pi);
+
+    // Update Chart
+    _updateChartData(pitch, roll);
+  }
+
+  void _startUpdatingSensorData() {
+    _updateTimer?.cancel();
+    _updateTimer =
+        Timer.periodic(Duration(milliseconds: _samplingInterval), (timer) {
+      if (mounted) {
+        _time += _samplingInterval / 1000;
+        setState(() {});
+      } else {
+        timer.cancel();
       }
     });
+  }
+
+  void _updateChartData(double pitch, double roll) {
+    //Max Länge des Charts
+    if (_chartData.length >= _chartDataLimit) {
+      _chartData.removeAt(0);
+    }
+    //neu anhängen
+    _chartData.add(ChartData(_time, pitch, roll));
   }
 
   @override
@@ -207,6 +164,7 @@ class _SensorPageState extends State<SensorPage> {
     _accelerometerSubscription.cancel();
     _gyroscopeSubscription.cancel();
     _magnetometerSubscription.cancel();
+    _updateTimer?.cancel();
     super.dispose();
   }
 
@@ -221,61 +179,41 @@ class _SensorPageState extends State<SensorPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
+              DropdownButton<int>(
+                value: _samplingInterval,
+                items: const [
+                  DropdownMenuItem(value: 100, child: Text('0.1 Sekunden')),
+                  DropdownMenuItem(value: 1000, child: Text('1 Sekunde')),
+                  DropdownMenuItem(value: 2000, child: Text('2 Sekunden')),
+                ],
+                onChanged: (int? value) {
+                  setState(() {
+                    _samplingInterval = value!;
+                    _startUpdatingSensorData(); // Restart, wenn neue Sensorfrequenz eingegeben
+                  });
+                },
+              ),
               const Text(
                 'Beschleunigungssensor (Accelerometer)',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-              //GUI Element zur Frequenanpassung des Beschleunigungssensors
-              Text('Accelerometer Frequenz: ${accelFrequency.toStringAsFixed(0)} Hz'),
-              SizedBox(
-                width: 200,
-                child:
-              Slider(
-                min: 1.0,
-                max: 100.0,
-                value: accelFrequency,
-                divisions: 99,
-                label: accelFrequency.toStringAsFixed(0),
-                onChanged: (value) {
-                  setState(() {
-                    accelFrequency = value;
-                  });
-                },
-              )
-              ),
-              ElevatedButton(
-                onPressed: () => _updateFrequency(_gyroscopeSubscription, gyroFrequency, _startGyroscopeSubscription),
-                child: const Text('Accelerometer Frequenz aktualisieren'),
-              ),
               Switch(
-                  // This bool value toggles the switch.q
-                  value: accel_on,
-                  activeColor: Colors.green,
-                  onChanged: (bool value) {
-                    // This is called when the user toggles the switch.
-                    setState(() {
-                      accel_on = value;
-                    });
+                value: accel_on,
+                activeColor: Colors.green,
+                onChanged: (bool value) {
+                  setState(() {
+                    accel_on = value;
+                  });
                   if (accel_on) {
                     _accelerometerSubscription = accelerometerEvents
-                        .listen((AccelerometerEvent event) {
+                    .listen((AccelerometerEvent event) {
                       if (mounted) {
                         setState(() {
                           accelX = event.x;
                           accelY = event.y;
                           accelZ = event.z;
-  
-                          //Gelesene Neigungen umrechnen
-                          pitch = atan2(
-                                  event.y,
-                                  sqrt(event.x * event.x +
-                                      event.z * event.z)) *
-                              (180 / pi);
-                          roll = atan2(
-                                  event.x,
-                                  sqrt(event.y * event.y +
-                                      event.z * event.z)) *
-                              (180 / pi);
+
+                          _calculatePitchAndRoll();
                         });
                       }
                     });
@@ -284,71 +222,41 @@ class _SensorPageState extends State<SensorPage> {
                     accelX = 0.0;
                     accelY = 0.0;
                     accelZ = 0.0;
-                    pitch = 0.0; //Lenkradneigung
-                    roll = 0.0; //nach vorne / zu einem kippen
                   }
                 }),
               Text('X: ${accelX.toStringAsFixed(2)}'),
               Text('Y: ${accelY.toStringAsFixed(2)}'),
               Text('Z: ${accelZ.toStringAsFixed(2)}'),
-              Text('Nickwinkel (Pitch): ${pitch.toStringAsFixed(2)}°'),
-              Text('Rollwinkel (Roll): ${roll.toStringAsFixed(2)}°'),
               const SizedBox(height: 20),
               const Text(
                 'Gyroskop',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-               //GUI-Element zur Frequenzanpassung des Gyroskops*
-              Text('Gyroscope Frequenz: ${gyroFrequency.toStringAsFixed(0)} Hz'),
-              SizedBox(
-                width: 200,
-                child: 
-                Slider(
-                min: 1.0,
-                max: 100.0,
-                value: gyroFrequency,
-                divisions: 99,
-                label: gyroFrequency.toStringAsFixed(0),
-                onChanged: (value) {
-                  setState(() {
-                    gyroFrequency = value;
-                  });
-                },
-              ),
-              ),
-              
-              ElevatedButton(
-                onPressed: () => _updateFrequency(_gyroscopeSubscription, gyroFrequency, _startGyroscopeSubscription),
-                child: const Text('Gyroskopfrequenz aktualisieren'),
-              ),
               Switch(
-                  // This bool value toggles the switch.
-                  value: gyro_on,
-                  activeColor: Colors.green,
-                  onChanged: (bool value) {
-                    setState(() {
-                      gyro_on = value;
+                value: gyro_on,
+                activeColor: Colors.green,
+                onChanged: (bool value) {
+                  setState(() {
+                    gyro_on = value;
+                  });
+                  if (gyro_on) {
+                    _gyroscopeSubscription =
+                        gyroscopeEvents.listen((GyroscopeEvent event) {
+                      if (mounted) {
+                        setState(() {
+                          gyroX = event.x;
+                          gyroY = event.y;
+                          gyroZ = event.z;
+                        });
+                      }
                     });
-                    // This is called when the user toggles the switch.
-                    if (gyro_on) {
-                      _gyroscopeSubscription =
-                          gyroscopeEvents.listen((GyroscopeEvent event) {
-                        if (mounted) {
-                          setState(() {
-                            gyroX = event.x;
-                            gyroY = event.y;
-                            gyroZ = event.z;
-                          });
-                        }
-                      });
-                    } else {
-                      _gyroscopeSubscription.cancel();
-
-                      gyroX = 0.0;
-                      gyroY = 0.0;
-                      gyroZ = 0.0;
-                    }
-                  }),
+                  } else {
+                    _gyroscopeSubscription.cancel();
+                    gyroX = 0.0;
+                    gyroY = 0.0;
+                    gyroZ = 0.0;
+                  }
+                }),
               Text('X: ${gyroX.toStringAsFixed(2)}'),
               Text('Y: ${gyroY.toStringAsFixed(2)}'),
               Text('Z: ${gyroZ.toStringAsFixed(2)}'),
@@ -357,137 +265,110 @@ class _SensorPageState extends State<SensorPage> {
                 'Magnetometer',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-              //GUI-Element zur Frequenzanpassung des Magnetometers**
-              Text('Magnetometer Frequenz: ${magnetFrequency.toStringAsFixed(0)} Hz'),
-              SizedBox(
-                width: 200,
-                child:
-              Slider(
-                min: 1.0,
-                max: 100.0,
-                value: magnetFrequency,
-                divisions: 99,
-                label: magnetFrequency.toStringAsFixed(0),
-                onChanged: (value) {
-                  setState(() {
-                    magnetFrequency = value;
-                  });
-                },
-              )
-              ),
-              ElevatedButton(
-                onPressed: () => _updateFrequency(_magnetometerSubscription, magnetFrequency, _startMagnetometerSubscription),
-                child: const Text('Magnetometerfrequenz aktualisieren'),
-              ),
               Switch(
-                  // This bool value toggles the switch.
-                  value: magnet_on,
-                  activeColor: Colors.green,
-                  onChanged: (bool value) {
-                    // This is called when the user toggles the switch.
-                    setState(() {
-                      magnet_on = value;
-                    });
+                value: magnet_on,
+                activeColor: Colors.green,
+                onChanged: (bool value) {
+                  setState(() {
+                    magnet_on = value;
+                  });
 
-              if (magnet_on) {
-                _magnetometerSubscription =
-                    magnetometerEvents.listen((MagnetometerEvent event) {
-                  if (mounted) {
-                    setState(() {
-                      magX = event.x;
-                      magY = event.y;
-                      magZ = event.z;
+                  if (magnet_on) {
+                    _magnetometerSubscription =
+                        magnetometerEvents.listen((MagnetometerEvent event) {
+                      if (mounted) {
+                        setState(() {
+                          magX = event.x;
+                          magY = event.y;
+                          magZ = event.z;
+                        });
+                      }
                     });
+                  } else {
+                    _magnetometerSubscription.cancel();
+
+                    magX = 0.0;
+                    magY = 0.0;
+                    magZ = 0.0;
                   }
-                });
-              } else {
-                _magnetometerSubscription.cancel();
-
-                magX = 0.0;
-                magY = 0.0;
-                magZ = 0.0;
-              }
-            }),
-        Text('X: ${magX.toStringAsFixed(2)}'),
-        Text('Y: ${magY.toStringAsFixed(2)}'),
-        Text('Z: ${magZ.toStringAsFixed(2)}'),
-        const SizedBox(height: 20),
-        Text(
-          'zuletzt gespeicherte Sensordaten',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        Text(
-          '$_accelerometer_data',
-        ),
-        Text(
-          '$_tilt_data',
-        ),
-        Text(
-          '$_gyroscope_data',
-        ),
-        Text(
-          '$_magnetometer_data',
-        ),
-        TextButton(
-          style: ButtonStyle(
-              backgroundColor:
-                  MaterialStatePropertyAll(Colors.blueAccent),
-              foregroundColor:
-                  MaterialStatePropertyAll<Color>(Color(0xffffffff))),
-          onPressed: _writeStorage,
-          child: Text("Daten Speichern"),
-        ),
-        TextButton(
-          style: ButtonStyle(
-              backgroundColor: MaterialStatePropertyAll(Colors.redAccent),
-              foregroundColor:
-                  MaterialStatePropertyAll<Color>(Color(0xffffffff))),
-          onPressed: _overwriteStorage,
-          child: Text("Daten Löschen"),
-        ),
-                      const Text(
-          'Beschleunigungssensor (Accelerometer)',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-         // Container für das Diagramm
-        Container(
-          height: 200,
-          padding: const EdgeInsets.all(16.0),
-          child: SfCartesianChart(
-          primaryXAxis: NumericAxis(),
-          primaryYAxis: NumericAxis(),
-        series: <LineSeries<double, int>>[
-        // Serie für die X-Achse des Accelerometers (Rot)
-        LineSeries<double, int>(
-          dataSource: accelXData,
-          xValueMapper: (_, index) => index,
-          yValueMapper: (double value, _) => value,
-          color: Colors.red, // X-Achse in Rot
-          name: 'Accel X',
-        ),
-        // Serie für die Y-Achse des Accelerometers (Grün)
-        LineSeries<double, int>(
-          dataSource: accelYData,
-          xValueMapper: (_, index) => index,
-          yValueMapper: (double value, _) => value,
-          color: Colors.green, // Y-Achse in Grün
-          name: 'Accel Y',
-        ),
-        // Serie für die Z-Achse des Accelerometers (Blau)
-        LineSeries<double, int>(
-          dataSource: accelZData,
-          xValueMapper: (_, index) => index,
-          yValueMapper: (double value, _) => value,
-          color: Colors.blue, // Z-Achse in Blau
-          name: 'Accel Z',
-                  ),
-                ],
+                }),
+              Text('X: ${magX.toStringAsFixed(2)}'),
+              Text('Y: ${magY.toStringAsFixed(2)}'),
+              Text('Z: ${magZ.toStringAsFixed(2)}'),
+              const SizedBox(height: 20),
+              const Text(
+                'zuletzt gespeicherte Sensordaten',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-            ),
-          ],
+              Text(_accelerometer_data),
+              Text(_tilt_data),
+              Text(_gyroscope_data),
+              Text(_magnetometer_data),
+              TextButton(
+                style: const ButtonStyle(
+                    backgroundColor:
+                        MaterialStatePropertyAll(Colors.blueAccent),
+                    foregroundColor:
+                        MaterialStatePropertyAll<Color>(Color(0xffffffff))),
+                onPressed: _writeStorage,
+                child: const Text("Daten Speichern"),
+              ),
+              TextButton(
+                style: const ButtonStyle(
+                    backgroundColor: MaterialStatePropertyAll(Colors.redAccent),
+                    foregroundColor:
+                        MaterialStatePropertyAll<Color>(Color(0xffffffff))),
+                onPressed: _overwriteStorage,
+                child: const Text("Daten Löschen"),
+              ),
+              const SizedBox(height: 20),
+              // Chart fürs Neigen
+              SizedBox(
+                height: 300,
+                child: SfCartesianChart(
+                  title: ChartTitle(text: 'Pitch und Roll Werte'),
+                  legend: Legend(isVisible: true),
+                  primaryXAxis: NumericAxis(
+                    title: AxisTitle(text: 'Zeit (s)'),
+                    minimum:
+                        _time > 20 ? _time - 20 : 0, // Dynamische x anzeige auf 20 sekunden
+                    maximum: _time,
+                    interval:
+                        1, //Abstand auf der x achse
+                  ),
+                  primaryYAxis:
+                      NumericAxis(title: AxisTitle(text: 'Winkel (°)')),
+                  series: <ChartSeries>[
+                    LineSeries<ChartData, double>(
+                      name: 'Pitch',
+                      dataSource: _chartData,
+                      xValueMapper: (ChartData data, _) => data.x,
+                      yValueMapper: (ChartData data, _) => data.pitch,
+                      markerSettings: const MarkerSettings(isVisible: true),
+                    ),
+                    LineSeries<ChartData, double>(
+                      name: 'Roll',
+                      dataSource: _chartData,
+                      xValueMapper: (ChartData data, _) => data.x,
+                      yValueMapper: (ChartData data, _) => data.roll,
+                      markerSettings: const MarkerSettings(isVisible: true),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-     ),
-   );
+    );
   }
+}
+
+// Data class for chart
+class ChartData {
+  final double x; // Zeit in Sek.
+  final double pitch;
+  final double roll;
+
+  ChartData(this.x, this.pitch, this.roll);
 }

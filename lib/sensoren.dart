@@ -22,7 +22,7 @@ class _SensorPageState extends State<SensorPage> {
   double pitch = 0.0; //Lenkradneigung
   double roll = 0.0; //nach vorne / zu einem kippen
 
-  //Fuer das Diagramm
+  //Fuer das Diagramm - Datenspeicher 
   List<double> accelXData = [];
   List<double> accelYData = [];
   List<double> accelZData = [];
@@ -37,7 +37,7 @@ class _SensorPageState extends State<SensorPage> {
   bool magnet_on = true;
   bool tilt_on = true;
 
-  // **Neue Variablen zur Frequenzsteuerung**
+  //Neue Variablen zur Frequenzsteuerung
   double accelFrequency = 50.0; // Start-Frequenz in Hz für Accelerometer
   double gyroFrequency = 50.0;  // Start-Frequenz in Hz für Gyroskop
   double magnetFrequency = 50.0; // Start-Frequenz in Hz für Magnetometer
@@ -45,8 +45,6 @@ class _SensorPageState extends State<SensorPage> {
   late StreamSubscription<AccelerometerEvent> _accelerometerSubscription;
   late StreamSubscription<GyroscopeEvent> _gyroscopeSubscription;
   late StreamSubscription<MagnetometerEvent> _magnetometerSubscription;
-
-  
 
   Future<void> _loadStorage() async {
     final prefs = await SharedPreferences.getInstance();
@@ -152,7 +150,7 @@ class _SensorPageState extends State<SensorPage> {
 
    //Methode zur Frequenzaktualisierung
   void _updateFrequency(StreamSubscription sensorSubscription, double frequency, Function startSubscription) {
-    sensorSubscription.cancel();
+    sensorSubscription.cancel(); //Neustart der Sensoren
     Future.delayed(Duration(milliseconds: (1000 / frequency).round()), startSubscription as FutureOr Function()?);
   }
 
@@ -258,39 +256,38 @@ class _SensorPageState extends State<SensorPage> {
                     setState(() {
                       accel_on = value;
                     });
-
-                    if (accel_on) {
-                      _accelerometerSubscription = accelerometerEvents
-                          .listen((AccelerometerEvent event) {
-                        if (mounted) {
-                          setState(() {
-                            accelX = event.x;
-                            accelY = event.y;
-                            accelZ = event.z;
-
-                            //Gelesene Neigungen umrechnen
-                            pitch = atan2(
-                                    event.y,
-                                    sqrt(event.x * event.x +
-                                        event.z * event.z)) *
-                                (180 / pi);
-                            roll = atan2(
-                                    event.x,
-                                    sqrt(event.y * event.y +
-                                        event.z * event.z)) *
-                                (180 / pi);
-                          });
-                        }
-                      });
-                    } else {
-                      _accelerometerSubscription.cancel();
-                      accelX = 0.0;
-                      accelY = 0.0;
-                      accelZ = 0.0;
-                      pitch = 0.0; //Lenkradneigung
-                      roll = 0.0; //nach vorne / zu einem kippen
-                    }
-                  }),
+                  if (accel_on) {
+                    _accelerometerSubscription = accelerometerEvents
+                        .listen((AccelerometerEvent event) {
+                      if (mounted) {
+                        setState(() {
+                          accelX = event.x;
+                          accelY = event.y;
+                          accelZ = event.z;
+  
+                          //Gelesene Neigungen umrechnen
+                          pitch = atan2(
+                                  event.y,
+                                  sqrt(event.x * event.x +
+                                      event.z * event.z)) *
+                              (180 / pi);
+                          roll = atan2(
+                                  event.x,
+                                  sqrt(event.y * event.y +
+                                      event.z * event.z)) *
+                              (180 / pi);
+                        });
+                      }
+                    });
+                  } else {
+                    _accelerometerSubscription.cancel();
+                    accelX = 0.0;
+                    accelY = 0.0;
+                    accelZ = 0.0;
+                    pitch = 0.0; //Lenkradneigung
+                    roll = 0.0; //nach vorne / zu einem kippen
+                  }
+                }),
               Text('X: ${accelX.toStringAsFixed(2)}'),
               Text('Y: ${accelY.toStringAsFixed(2)}'),
               Text('Z: ${accelZ.toStringAsFixed(2)}'),
@@ -392,105 +389,105 @@ class _SensorPageState extends State<SensorPage> {
                       magnet_on = value;
                     });
 
-                    if (magnet_on) {
-                      _magnetometerSubscription =
-                          magnetometerEvents.listen((MagnetometerEvent event) {
-                        if (mounted) {
-                          setState(() {
-                            magX = event.x;
-                            magY = event.y;
-                            magZ = event.z;
-                          });
-                        }
-                      });
-                    } else {
-                      _magnetometerSubscription.cancel();
+              if (magnet_on) {
+                _magnetometerSubscription =
+                    magnetometerEvents.listen((MagnetometerEvent event) {
+                  if (mounted) {
+                    setState(() {
+                      magX = event.x;
+                      magY = event.y;
+                      magZ = event.z;
+                    });
+                  }
+                });
+              } else {
+                _magnetometerSubscription.cancel();
 
-                      magX = 0.0;
-                      magY = 0.0;
-                      magZ = 0.0;
-                    }
-                  }),
-              Text('X: ${magX.toStringAsFixed(2)}'),
-              Text('Y: ${magY.toStringAsFixed(2)}'),
-              Text('Z: ${magZ.toStringAsFixed(2)}'),
-              const SizedBox(height: 20),
-              Text(
-                'zuletzt gespeicherte Sensordaten',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                magX = 0.0;
+                magY = 0.0;
+                magZ = 0.0;
+              }
+            }),
+        Text('X: ${magX.toStringAsFixed(2)}'),
+        Text('Y: ${magY.toStringAsFixed(2)}'),
+        Text('Z: ${magZ.toStringAsFixed(2)}'),
+        const SizedBox(height: 20),
+        Text(
+          'zuletzt gespeicherte Sensordaten',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        Text(
+          '$_accelerometer_data',
+        ),
+        Text(
+          '$_tilt_data',
+        ),
+        Text(
+          '$_gyroscope_data',
+        ),
+        Text(
+          '$_magnetometer_data',
+        ),
+        TextButton(
+          style: ButtonStyle(
+              backgroundColor:
+                  MaterialStatePropertyAll(Colors.blueAccent),
+              foregroundColor:
+                  MaterialStatePropertyAll<Color>(Color(0xffffffff))),
+          onPressed: _writeStorage,
+          child: Text("Daten Speichern"),
+        ),
+        TextButton(
+          style: ButtonStyle(
+              backgroundColor: MaterialStatePropertyAll(Colors.redAccent),
+              foregroundColor:
+                  MaterialStatePropertyAll<Color>(Color(0xffffffff))),
+          onPressed: _overwriteStorage,
+          child: Text("Daten Löschen"),
+        ),
+                      const Text(
+          'Beschleunigungssensor (Accelerometer)',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+         // Container für das Diagramm
+        Container(
+          height: 200,
+          padding: const EdgeInsets.all(16.0),
+          child: SfCartesianChart(
+          primaryXAxis: NumericAxis(),
+          primaryYAxis: NumericAxis(),
+        series: <LineSeries<double, int>>[
+        // Serie für die X-Achse des Accelerometers (Rot)
+        LineSeries<double, int>(
+          dataSource: accelXData,
+          xValueMapper: (_, index) => index,
+          yValueMapper: (double value, _) => value,
+          color: Colors.red, // X-Achse in Rot
+          name: 'Accel X',
+        ),
+        // Serie für die Y-Achse des Accelerometers (Grün)
+        LineSeries<double, int>(
+          dataSource: accelYData,
+          xValueMapper: (_, index) => index,
+          yValueMapper: (double value, _) => value,
+          color: Colors.green, // Y-Achse in Grün
+          name: 'Accel Y',
+        ),
+        // Serie für die Z-Achse des Accelerometers (Blau)
+        LineSeries<double, int>(
+          dataSource: accelZData,
+          xValueMapper: (_, index) => index,
+          yValueMapper: (double value, _) => value,
+          color: Colors.blue, // Z-Achse in Blau
+          name: 'Accel Z',
+                  ),
+                ],
               ),
-              Text(
-                '$_accelerometer_data',
-              ),
-              Text(
-                '$_tilt_data',
-              ),
-              Text(
-                '$_gyroscope_data',
-              ),
-              Text(
-                '$_magnetometer_data',
-              ),
-              TextButton(
-                style: ButtonStyle(
-                    backgroundColor:
-                        MaterialStatePropertyAll(Colors.blueAccent),
-                    foregroundColor:
-                        MaterialStatePropertyAll<Color>(Color(0xffffffff))),
-                onPressed: _writeStorage,
-                child: Text("Daten Speichern"),
-              ),
-              TextButton(
-                style: ButtonStyle(
-                    backgroundColor: MaterialStatePropertyAll(Colors.redAccent),
-                    foregroundColor:
-                        MaterialStatePropertyAll<Color>(Color(0xffffffff))),
-                onPressed: _overwriteStorage,
-                child: Text("Daten Löschen"),
-              ),
-                            const Text(
-                'Beschleunigungssensor (Accelerometer)',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-               // Container für das Diagramm
-              Container(
-                height: 200,
-                padding: const EdgeInsets.all(16.0),
-                child: SfCartesianChart(
-                  primaryXAxis: NumericAxis(),
-                  primaryYAxis: NumericAxis(),
-series: <LineSeries<double, int>>[
-  // Serie für die X-Achse des Accelerometers (Rot)
-  LineSeries<double, int>(
-    dataSource: accelXData,
-    xValueMapper: (_, index) => index,
-    yValueMapper: (double value, _) => value,
-    color: Colors.red, // X-Achse in Rot
-    name: 'Accel X',
-  ),
-  // Serie für die Y-Achse des Accelerometers (Grün)
-  LineSeries<double, int>(
-    dataSource: accelYData,
-    xValueMapper: (_, index) => index,
-    yValueMapper: (double value, _) => value,
-    color: Colors.green, // Y-Achse in Grün
-    name: 'Accel Y',
-  ),
-  // Serie für die Z-Achse des Accelerometers (Blau)
-  LineSeries<double, int>(
-    dataSource: accelZData,
-    xValueMapper: (_, index) => index,
-    yValueMapper: (double value, _) => value,
-    color: Colors.blue, // Z-Achse in Blau
-    name: 'Accel Z',
-                ),
-              ],
-              ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
-    );
+     ),
+   );
   }
 }

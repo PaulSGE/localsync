@@ -37,9 +37,16 @@ class _SensorPageState extends State<SensorPage> {
   bool magnet_on = true;
   bool tilt_on = true;
 
+  // **Neue Variablen zur Frequenzsteuerung**
+  double accelFrequency = 50.0; // Start-Frequenz in Hz für Accelerometer
+  double gyroFrequency = 50.0;  // Start-Frequenz in Hz für Gyroskop
+  double magnetFrequency = 50.0; // Start-Frequenz in Hz für Magnetometer
+
   late StreamSubscription<AccelerometerEvent> _accelerometerSubscription;
   late StreamSubscription<GyroscopeEvent> _gyroscopeSubscription;
   late StreamSubscription<MagnetometerEvent> _magnetometerSubscription;
+
+  
 
   Future<void> _loadStorage() async {
     final prefs = await SharedPreferences.getInstance();
@@ -143,6 +150,59 @@ class _SensorPageState extends State<SensorPage> {
     });
   }
 
+   //Methode zur Frequenzaktualisierung
+  void _updateFrequency(StreamSubscription sensorSubscription, double frequency, Function startSubscription) {
+    sensorSubscription.cancel();
+    Future.delayed(Duration(milliseconds: (1000 / frequency).round()), startSubscription as FutureOr Function()?);
+  }
+
+   void _startAccelerometerSubscription() {
+    _accelerometerSubscription = accelerometerEvents.listen((AccelerometerEvent event) {
+      if (mounted && accel_on) {
+        setState(() {
+          accelX = event.x;
+          accelY = event.y;
+          accelZ = event.z;
+
+          pitch = atan2(event.y, sqrt(event.x * event.x + event.z * event.z)) * (180 / pi);
+          roll = atan2(event.x, sqrt(event.y * event.y + event.z * event.z)) * (180 / pi);
+
+          if (accelXData.length > 20) accelXData.removeAt(0); // Limit auf 20 Punkte
+          if (accelYData.length > 20) accelYData.removeAt(0);
+          if (accelZData.length > 20) accelZData.removeAt(0);
+
+          accelXData.add(accelX);
+          accelYData.add(accelY);
+          accelZData.add(accelZ);
+        });
+      }
+    });
+  }
+
+   void _startGyroscopeSubscription() {
+    _gyroscopeSubscription = gyroscopeEvents.listen((GyroscopeEvent event) {
+      if (mounted && gyro_on) {
+        setState(() {
+          gyroX = event.x;
+          gyroY = event.y;
+          gyroZ = event.z;
+        });
+      }
+    });
+  }
+
+  void _startMagnetometerSubscription() {
+    _magnetometerSubscription = magnetometerEvents.listen((MagnetometerEvent event) {
+      if (mounted && magnet_on) {
+        setState(() {
+          magX = event.x;
+          magY = event.y;
+          magZ = event.z;
+        });
+      }
+    });
+  }
+
   @override
   void dispose() {
     //Datenstreams beenden
@@ -167,8 +227,30 @@ class _SensorPageState extends State<SensorPage> {
                 'Beschleunigungssensor (Accelerometer)',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
+              //GUI Element zur Frequenanpassung des Beschleunigungssensors
+              Text('Accelerometer Frequenz: ${accelFrequency.toStringAsFixed(0)} Hz'),
+              SizedBox(
+                width: 200,
+                child:
+              Slider(
+                min: 1.0,
+                max: 100.0,
+                value: accelFrequency,
+                divisions: 99,
+                label: accelFrequency.toStringAsFixed(0),
+                onChanged: (value) {
+                  setState(() {
+                    accelFrequency = value;
+                  });
+                },
+              )
+              ),
+              ElevatedButton(
+                onPressed: () => _updateFrequency(_gyroscopeSubscription, gyroFrequency, _startGyroscopeSubscription),
+                child: const Text('Accelerometer Frequenz aktualisieren'),
+              ),
               Switch(
-                  // This bool value toggles the switch.
+                  // This bool value toggles the switch.q
                   value: accel_on,
                   activeColor: Colors.green,
                   onChanged: (bool value) {
@@ -216,8 +298,31 @@ class _SensorPageState extends State<SensorPage> {
               Text('Rollwinkel (Roll): ${roll.toStringAsFixed(2)}°'),
               const SizedBox(height: 20),
               const Text(
-                'Gyroskop (Gyroscope)',
+                'Gyroskop',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+               //GUI-Element zur Frequenzanpassung des Gyroskops*
+              Text('Gyroscope Frequenz: ${gyroFrequency.toStringAsFixed(0)} Hz'),
+              SizedBox(
+                width: 200,
+                child: 
+                Slider(
+                min: 1.0,
+                max: 100.0,
+                value: gyroFrequency,
+                divisions: 99,
+                label: gyroFrequency.toStringAsFixed(0),
+                onChanged: (value) {
+                  setState(() {
+                    gyroFrequency = value;
+                  });
+                },
+              ),
+              ),
+              
+              ElevatedButton(
+                onPressed: () => _updateFrequency(_gyroscopeSubscription, gyroFrequency, _startGyroscopeSubscription),
+                child: const Text('Gyroskopfrequenz aktualisieren'),
               ),
               Switch(
                   // This bool value toggles the switch.
@@ -254,6 +359,28 @@ class _SensorPageState extends State<SensorPage> {
               const Text(
                 'Magnetometer',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              //GUI-Element zur Frequenzanpassung des Magnetometers**
+              Text('Magnetometer Frequenz: ${magnetFrequency.toStringAsFixed(0)} Hz'),
+              SizedBox(
+                width: 200,
+                child:
+              Slider(
+                min: 1.0,
+                max: 100.0,
+                value: magnetFrequency,
+                divisions: 99,
+                label: magnetFrequency.toStringAsFixed(0),
+                onChanged: (value) {
+                  setState(() {
+                    magnetFrequency = value;
+                  });
+                },
+              )
+              ),
+              ElevatedButton(
+                onPressed: () => _updateFrequency(_magnetometerSubscription, magnetFrequency, _startMagnetometerSubscription),
+                child: const Text('Magnetometerfrequenz aktualisieren'),
               ),
               Switch(
                   // This bool value toggles the switch.

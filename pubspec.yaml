@@ -17,6 +17,7 @@ dependencies:
   flutter_map: ^4.0.0
   latlong2: ^0.8.1
   shared_preferences: ^2.3.2
+  syncfusion_flutter_charts: ^20.1.56
 
 dev_dependencies:
   flutter_test:

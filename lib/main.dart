@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'sensoren.dart';
+import 'start.dart';
 import 'gps.dart';
 
 void main() {
@@ -34,7 +34,7 @@ class _HomePageState extends State<HomePage> {
 
   //Seiten einbinden
   final List<Widget> _pages = [
-    const SensorPage(),
+    const StartPage(),
     const GpsPage(),
   ];
 
@@ -51,8 +51,8 @@ class _HomePageState extends State<HomePage> {
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: Icon(Icons.sensors),
-            label: 'Sensoren',
+            icon: Icon(Icons.dashboard),
+            label: 'Startseite',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.location_on),

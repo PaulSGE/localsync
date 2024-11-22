@@ -42,21 +42,6 @@ class _GpsPageState extends State<GpsPage> {
     LatLng(51.44372850409007, 7.2611495160850845),
   ];
 
-  List<LatLng> hardcodedRoute = [
-    LatLng(51.448012847547375, 7.270595761134885),
-    LatLng(51.44705592367576, 7.26771353140143),
-    LatLng(51.44619271272524, 7.268263146561089),
-    LatLng(51.44511025056258, 7.265097363317558),
-    LatLng(51.44419551359768, 7.262285408755903),
-    LatLng(51.443331828986615, 7.263037989043566),
-    LatLng(51.443011665886154, 7.26312160907553),
-    LatLng(51.442757454671685, 7.262379331292123),
-    LatLng(51.44264972003007, 7.2618247985997755),
-    LatLng(51.443056367671204, 7.261458130615873),
-    LatLng(51.44372055195047, 7.260958138979937),
-    LatLng(51.44372850409007, 7.2611495160850845),
-  ];
-
   void _exportData() {
     String jsonManuallyCaptured = jsonEncode(_manSavedPositions);
     String jsonAutoCaptured = jsonEncode(_autoSavedPositions);
@@ -86,8 +71,6 @@ class _GpsPageState extends State<GpsPage> {
   // }
 
   Future<void> _saveManualPosition(LatLng position) async {
-    final prefs = await SharedPreferences.getInstance();
-
     Map<String, dynamic> newEntry = {
       'position': {
         'latitude': position.latitude,
@@ -116,8 +99,6 @@ class _GpsPageState extends State<GpsPage> {
   }
 
   Future<void> _saveAutoPosition(LatLng position) async {
-    final prefs = await SharedPreferences.getInstance();
-
     Map<String, dynamic> newEntry = {
       'position': {
         'latitude': position.latitude,
@@ -160,15 +141,11 @@ class _GpsPageState extends State<GpsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text("Standortberechtigung dauerhaft verweigert.")),
-          const SnackBar(
-              content: Text("Standortberechtigung dauerhaft verweigert.")),
         );
       });
       return;
     }
 
-    Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
     Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
     LatLng currentPosition = LatLng(position.latitude, position.longitude);
@@ -215,8 +192,6 @@ class _GpsPageState extends State<GpsPage> {
     if (permission == LocationPermission.deniedForever) {
       setState(() {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text("Standortberechtigung dauerhaft verweigert.")),
           const SnackBar(
               content: Text("Standortberechtigung dauerhaft verweigert.")),
         );
@@ -271,6 +246,15 @@ class _GpsPageState extends State<GpsPage> {
           TileLayer(
             urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
             subdomains: const ['a', 'b', 'c'],
+          ),
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: hardcodedRoute,
+                color: Colors.red,
+                strokeWidth: 6,
+              ),
+            ],
           ),
           MarkerLayer(
               // MARKER LAYER MANUELLE POSITIONEN

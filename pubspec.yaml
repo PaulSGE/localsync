@@ -18,6 +18,8 @@ dependencies:
   latlong2: ^0.8.1
   shared_preferences: ^2.3.2
   syncfusion_flutter_charts: ^20.1.56
+  http: ^0.13.5
+  flutter_dotenv: ^5.2.1
 
 dev_dependencies:
   flutter_test:
@@ -26,3 +28,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+  - .env

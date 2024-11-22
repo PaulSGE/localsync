@@ -5,6 +5,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class GpsPage extends StatefulWidget {
   const GpsPage({super.key});
@@ -42,16 +44,28 @@ class _GpsPageState extends State<GpsPage> {
     LatLng(51.44372850409007, 7.2611495160850845),
   ];
 
-  void _exportData() {
+  void _exportData() async {
     String jsonManuallyCaptured = jsonEncode(_manSavedPositions);
     String jsonAutoCaptured = jsonEncode(_autoSavedPositions);
 
-    int manLen = _manSavedPositions.length;
-    int autoLen = _autoSavedPositions.length;
-    print("ManCap Count: $manLen $jsonManuallyCaptured");
+    var url = Uri.http("${dotenv.env['SERVER']}:${dotenv.env['PORT']}");
 
-    print("AutoCap Count: $autoLen $jsonAutoCaptured");
-    // TODO: send to Server
+    Map<String, dynamic> requestBody = {
+      "manuallyCaptured": jsonManuallyCaptured,
+      "autoCaptured": jsonAutoCaptured,
+    };
+
+    try {
+      await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode(requestBody),
+      );
+    } catch (e) {
+      print("Exception aufgetreten: $e");
+    }
   }
 
   // Future<void> _loadSavedPositions() async {
@@ -269,7 +283,7 @@ class _GpsPageState extends State<GpsPage> {
                       Marker(
                         width: 40.0,
                         height: 40.0,
-                        point: _adjustMarkerPosition(location, index),
+                        point: location,
                         builder: (ctx) => Icon(
                           Icons.location_on,
                           color: Colors.green,
@@ -293,7 +307,7 @@ class _GpsPageState extends State<GpsPage> {
                       Marker(
                         width: 40.0,
                         height: 40.0,
-                        point: _adjustMarkerPosition(location, index),
+                        point: location,
                         builder: (ctx) => Icon(
                           Icons.location_pin,
                           color: Colors.blue,

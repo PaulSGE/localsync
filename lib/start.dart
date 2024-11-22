@@ -13,7 +13,7 @@ class StartPage extends StatelessWidget {
       ),
       body: const Center(
         child: Text(
-          'Startseite',
+          'Location Tracker App',
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
       ),

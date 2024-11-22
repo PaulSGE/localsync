@@ -3,6 +3,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:async';
+import 'dart:convert';
 
 class GpsPage extends StatefulWidget {
   const GpsPage({super.key});
@@ -14,42 +16,89 @@ class GpsPage extends StatefulWidget {
 
 class _GpsPageState extends State<GpsPage> {
   //Liste für gespeicherten Positionen
-  List<LatLng> _savedPositions = [];
+  List<Map<String, dynamic>> _manSavedPositions = [];
+  List<Map<String, dynamic>> _autoSavedPositions = [];
+
   final MapController _mapController = MapController();
 
   @override
   void initState() {
     super.initState();
-    _loadSavedPositions();
+    // _loadSavedPositions();
   }
 
-  Future<void> _loadSavedPositions() async {
+  void _exportData() {
+    String jsonManuallyCaptured = jsonEncode(_manSavedPositions);
+    String jsonAutoCaptured = jsonEncode(_autoSavedPositions);
+
+    int manLen = _manSavedPositions.length;
+    int autoLen = _autoSavedPositions.length;
+    print("ManCap Count: $manLen $jsonManuallyCaptured");
+
+    print("AutoCap Count: $autoLen $jsonAutoCaptured");
+    // TODO: send to Server
+  }
+
+  // Future<void> _loadSavedPositions() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   final positions = prefs.getStringList('manSavedPositions') ?? [];
+  //   setState(() {
+  //     _manSavedPositions = positions.map((position) {
+  //       final coords = position.split(',');
+  //       return LatLng(double.parse(coords[0]), double.parse(coords[1]));
+  //     }).toList();
+  //   });
+
+  //   //Zoom auf die letzte Position, wenn in savedPositions vorhanden
+  //   // if (_manSavedPositions.isNotEmpty) {
+  //   //   _mapController.move(_manSavedPositions.last, 15);
+  //   // }
+  // }
+
+  Future<void> _saveManualPosition(LatLng position) async {
     final prefs = await SharedPreferences.getInstance();
-    final positions = prefs.getStringList('savedPositions') ?? [];
+
+    Map<String, dynamic> newEntry = {
+      'position': {
+        'latitude': position.latitude,
+        'longitude': position.longitude
+      },
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+    _manSavedPositions.add(newEntry);
+  }
+
+  var _autoCapture = false;
+  Timer? timer;
+
+  void _toggleAutoLocationCapture() {
     setState(() {
-      _savedPositions = positions.map((position) {
-        final coords = position.split(',');
-        return LatLng(double.parse(coords[0]), double.parse(coords[1]));
-      }).toList();
+      _autoCapture = !_autoCapture;
     });
 
-    //Zoom auf die letzte Position, wenn in savedPositions vorhanden
-    if (_savedPositions.isNotEmpty) {
-      _mapController.move(_savedPositions.last, 15);
+    if (!_autoCapture) {
+      timer!.cancel();
+      return;
     }
+
+    timer = Timer.periodic(
+        Duration(seconds: 5), (Timer t) => _automaticallyGetCurrentLocation());
   }
 
-  Future<void> _savePosition(LatLng position) async {
+  Future<void> _saveAutoPosition(LatLng position) async {
     final prefs = await SharedPreferences.getInstance();
-    //Remove Position, so das nur eine max. Anzahl gespeichert wird.
-    if (_savedPositions.length >= 2) {
-      _savedPositions.removeAt(0);
-    }
-    _savedPositions.add(position);
-    await prefs.setStringList('savedPositions', _savedPositions.map((p) => '${p.latitude},${p.longitude}').toList());
+
+    Map<String, dynamic> newEntry = {
+      'position': {
+        'latitude': position.latitude,
+        'longitude': position.longitude
+      },
+      'timestamp': DateTime.now().toString()
+    };
+    _autoSavedPositions.add(newEntry);
   }
 
-  Future<void> _getCurrentLocation() async {
+  Future<void> _manuallyGetCurrentLocation() async {
     bool serviceEnabled;
     LocationPermission permission;
 
@@ -79,23 +128,30 @@ class _GpsPageState extends State<GpsPage> {
     if (permission == LocationPermission.deniedForever) {
       setState(() {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Standortberechtigung dauerhaft verweigert.")),
+          const SnackBar(
+              content: Text("Standortberechtigung dauerhaft verweigert.")),
         );
       });
       return;
     }
 
-    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
     LatLng currentPosition = LatLng(position.latitude, position.longitude);
 
+    //ENTKOMMENTIEREN FÜR NETZWERKPOSITIONIERUNG
+    // Position position = await Geolocator.getCurrentPosition(
+    //     desiredAccuracy: LocationAccuracy.low);
+
     //save neuer Position
-    _savePosition(currentPosition);
+    _saveManualPosition(currentPosition);
+
     setState(() {
       _mapController.move(currentPosition, 15);
     });
   }
 
-  Future<void> _getNetworkLocation() async {
+  Future<void> _automaticallyGetCurrentLocation() async {
     bool serviceEnabled;
     LocationPermission permission;
 
@@ -125,36 +181,41 @@ class _GpsPageState extends State<GpsPage> {
     if (permission == LocationPermission.deniedForever) {
       setState(() {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Standortberechtigung dauerhaft verweigert.")),
+          const SnackBar(
+              content: Text("Standortberechtigung dauerhaft verweigert.")),
         );
       });
       return;
     }
 
-    //Netzwerk
-    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.low);
-    LatLng networkPosition = LatLng(position.latitude, position.longitude);
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    LatLng currentPosition = LatLng(position.latitude, position.longitude);
+
+    //ENTKOMMENTIEREN FÜR NETZWERKPOSITIONIERUNG
+    // Position position = await Geolocator.getCurrentPosition(
+    //     desiredAccuracy: LocationAccuracy.low);
 
     //save neuer Position
-    _savePosition(networkPosition);
-    setState(() {
-      _mapController.move(networkPosition, 15);
-    });
+    _saveAutoPosition(currentPosition);
   }
 
 // Alle Positionen löschen
   Future<void> _clearSavedPositions() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _savedPositions.clear();
+      _manSavedPositions.clear();
+      _autoSavedPositions.clear();
     });
-    await prefs.remove('savedPositions');
+    await prefs.remove('autoSavedPositions');
+    await prefs.remove('manSavedPositions');
   }
 
   //Leichte Verschiebung, um Überlappung zu verhindern
   LatLng _adjustMarkerPosition(LatLng originalPosition, int index) {
     double offset = 0.0001 * (index + 1);
-    return LatLng(originalPosition.latitude + offset, originalPosition.longitude + offset);
+    return LatLng(originalPosition.latitude + offset,
+        originalPosition.longitude + offset);
   }
 
   @override
@@ -166,7 +227,8 @@ class _GpsPageState extends State<GpsPage> {
       body: FlutterMap(
         mapController: _mapController,
         options: MapOptions(
-          center: _savedPositions.isNotEmpty ? _savedPositions.last : LatLng(0, 0),
+          center: LatLng(
+              51.44750116717069, 7.271411812287161), // Hochschule Location
           zoom: 15,
         ),
         children: [
@@ -175,34 +237,76 @@ class _GpsPageState extends State<GpsPage> {
             subdomains: const ['a', 'b', 'c'],
           ),
           MarkerLayer(
-            markers: _savedPositions.asMap().map((index, position) {
-              Color markerColor = index == 0 ? Colors.red : Colors.blue;
-              return MapEntry(
-                index,
-                Marker(
-                  width: 40.0,
-                  height: 40.0,
-                  point: _adjustMarkerPosition(position, index),
-                  builder: (ctx) => Icon(Icons.location_on, color: markerColor, size: 40),
-                ),
-              );
-            }).values.toList(),
-          ),
+              // MARKER LAYER MANUELLE POSITIONEN
+              markers: _manSavedPositions
+                  .asMap()
+                  .map((index, entry) {
+                    LatLng location = LatLng(entry['position']['latitude'],
+                        entry['position']['longitude']);
+
+                    return MapEntry(
+                      index,
+                      Marker(
+                        width: 40.0,
+                        height: 40.0,
+                        point: _adjustMarkerPosition(location, index),
+                        builder: (ctx) => Icon(
+                          Icons.location_on,
+                          color: Colors.green,
+                          size: 30,
+                        ),
+                      ),
+                    );
+                  })
+                  .values
+                  .toList()),
+          MarkerLayer(
+              // MARKER LAYER AUTOMATISCH ERFASSTE POSITIONEN
+              markers: _autoSavedPositions
+                  .asMap()
+                  .map((index, entry) {
+                    LatLng location = LatLng(entry['position']['latitude'],
+                        entry['position']['longitude']);
+
+                    return MapEntry(
+                      index,
+                      Marker(
+                        width: 40.0,
+                        height: 40.0,
+                        point: _adjustMarkerPosition(location, index),
+                        builder: (ctx) => Icon(
+                          Icons.location_pin,
+                          color: Colors.blue,
+                          size: 10,
+                        ),
+                      ),
+                    );
+                  })
+                  .values
+                  .toList()),
         ],
       ),
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           FloatingActionButton(
-            onPressed: _getCurrentLocation,
+            onPressed: _manuallyGetCurrentLocation,
             tooltip: 'GPS-Position ermitteln',
             child: const Icon(Icons.location_on),
           ),
           const SizedBox(height: 10),
           FloatingActionButton(
-            onPressed: _getNetworkLocation,
-            tooltip: 'Netzwerk-Position ermitteln',
-            child: const Icon(Icons.wifi_tethering),
+            onPressed: _toggleAutoLocationCapture,
+            tooltip: 'Automatische Erfassung Togglen',
+            child: Icon(
+              _autoCapture ? Icons.pause : Icons.play_arrow,
+            ),
+          ),
+          const SizedBox(height: 10),
+          FloatingActionButton(
+            onPressed: _exportData,
+            tooltip: 'Export Data',
+            child: const Icon(Icons.save),
           ),
           const SizedBox(height: 10),
           FloatingActionButton(

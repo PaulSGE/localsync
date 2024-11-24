@@ -47,12 +47,14 @@ class _GpsPageState extends State<GpsPage> {
   void _exportData() async {
     String jsonManuallyCaptured = jsonEncode(_manSavedPositions);
     String jsonAutoCaptured = jsonEncode(_autoSavedPositions);
+    String jsonHardcodeRoute = jsonEncode(hardcodedRoute);
 
     var url = Uri.http("${dotenv.env['SERVER']}:${dotenv.env['PORT']}");
 
     Map<String, dynamic> requestBody = {
       "manuallyCaptured": jsonManuallyCaptured,
       "autoCaptured": jsonAutoCaptured,
+      "hardCodedRoute": jsonHardcodeRoute,
     };
 
     try {

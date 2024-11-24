@@ -1,0 +1,16 @@
+{
+  "name": "backendluma",
+  "version": "1.0.0",
+  "description": "Backend LumA",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.3",
+    "express": "^4.21.1"
+  },
+  "devDependencies": {},
+  "author": "",
+  "license": "ISC"
+}

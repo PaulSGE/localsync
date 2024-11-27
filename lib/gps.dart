@@ -53,8 +53,8 @@ class _GpsPageState extends State<GpsPage> {
 
     Map<String, dynamic> requestBody = {
       "manuallyCaptured": jsonManuallyCaptured,
-      "autoCaptured": jsonAutoCaptured,
       "hardCodedRoute": jsonHardcodeRoute,
+      "autoCaptured": jsonAutoCaptured,
     };
 
     try {

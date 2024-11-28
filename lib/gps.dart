@@ -18,8 +18,14 @@ class GpsPage extends StatefulWidget {
 
 class _GpsPageState extends State<GpsPage> {
   //Liste für gespeicherten Positionen
-  List<Map<String, dynamic>> _manSavedPositions = [];
-  List<Map<String, dynamic>> _autoSavedPositions = [];
+  List<Map<String, dynamic>> _manSavedPositionshigh = [];
+  List<Map<String, dynamic>> _autoSavedPositionshigh = [];
+
+  //List<Map<String, dynamic>> _manSavedPositionsmedium = [];
+  //List<Map<String, dynamic>> _autoSavedPositionsmedium = [];
+
+  List<Map<String, dynamic>> _manSavedPositionsgps = [];
+  List<Map<String, dynamic>> _autoSavedPositionsgps = [];
 
   final MapController _mapController = MapController();
 
@@ -45,16 +51,24 @@ class _GpsPageState extends State<GpsPage> {
   ];
 
   void _exportData() async {
-    String jsonManuallyCaptured = jsonEncode(_manSavedPositions);
-    String jsonAutoCaptured = jsonEncode(_autoSavedPositions);
+    String jsonManuallyCapturedhigh = jsonEncode(_manSavedPositionshigh);
+    //String jsonManuallyCapturedmedium = jsonEncode(_manSavedPositionsmedium);
+    String jsonManuallyCapturedgps = jsonEncode(_manSavedPositionsgps);
+    String jsonAutoCapturedhigh = jsonEncode(_autoSavedPositionshigh);
+    //String jsonAutoCapturedmedium = jsonEncode(_autoSavedPositionsmedium);
+    String jsonAutoCapturedgps = jsonEncode(_autoSavedPositionsgps);
     String jsonHardcodeRoute = jsonEncode(hardcodedRoute);
 
     var url = Uri.http("${dotenv.env['SERVER']}:${dotenv.env['PORT']}");
 
     Map<String, dynamic> requestBody = {
-      "manuallyCaptured": jsonManuallyCaptured,
-      "hardCodedRoute": jsonHardcodeRoute,
-      "autoCaptured": jsonAutoCaptured,
+      "manuallyCapturedhigh": jsonManuallyCapturedhigh,
+      "autoCapturedhigh": jsonAutoCapturedhigh,
+      //"manuallyCapturedmedium": jsonManuallyCapturedmedium,
+      //"autoCapturedmedium": jsonAutoCapturedmedium,
+      "manuallyCapturedgps": jsonManuallyCapturedgps,
+      "autoCapturedgps": jsonAutoCapturedgps,
+      "hardCodedRouteh": jsonHardcodeRoute,
     };
 
     try {
@@ -86,7 +100,7 @@ class _GpsPageState extends State<GpsPage> {
   //   // }
   // }
 
-  Future<void> _saveManualPosition(LatLng position) async {
+  Future<void> _saveManualPosition(LatLng position, int art) async {
     Map<String, dynamic> newEntry = {
       'position': {
         'latitude': position.latitude,
@@ -94,7 +108,13 @@ class _GpsPageState extends State<GpsPage> {
       },
       'timestamp': DateTime.now().toIso8601String(),
     };
-    _manSavedPositions.add(newEntry);
+    if(art == 1){
+      _manSavedPositionshigh.add(newEntry);
+    }else if(art == 2){
+      //_manSavedPositionsmedium.add(newEntry);
+    }else if(art == 3){
+      _manSavedPositionsgps.add(newEntry);
+    }
   }
 
   var _autoCapture = false;
@@ -114,7 +134,7 @@ class _GpsPageState extends State<GpsPage> {
         Duration(seconds: 5), (Timer t) => _automaticallyGetCurrentLocation());
   }
 
-  Future<void> _saveAutoPosition(LatLng position) async {
+  Future<void> _saveAutoPosition(LatLng position,int art) async {
     Map<String, dynamic> newEntry = {
       'position': {
         'latitude': position.latitude,
@@ -122,7 +142,13 @@ class _GpsPageState extends State<GpsPage> {
       },
       'timestamp': DateTime.now().toString()
     };
-    _autoSavedPositions.add(newEntry);
+    if(art == 1){
+      _autoSavedPositionshigh.add(newEntry);
+    }else if(art == 2){
+      //_autoSavedPositionsmedium.add(newEntry);
+    }else if(art == 3){
+      _autoSavedPositionsgps.add(newEntry);
+    }
   }
 
   Future<void> _manuallyGetCurrentLocation() async {
@@ -162,19 +188,33 @@ class _GpsPageState extends State<GpsPage> {
       return;
     }
 
-    Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
-    LatLng currentPosition = LatLng(position.latitude, position.longitude);
+    Position positionhigh = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high, forceAndroidLocationManager: true,
+        );
+    LatLng currentPositionhigh = LatLng(positionhigh.latitude, positionhigh.longitude);
+
+    // Position positionmedium = await Geolocator.getCurrentPosition(
+    //     desiredAccuracy: LocationAccuracy.medium, forceAndroidLocationManager: true,
+    //     );
+    // LatLng currentPositionmedium = LatLng(positionmedium.latitude, positionmedium.longitude);
+
+    Position positiongps = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.bestForNavigation,
+  forceAndroidLocationManager: true,// GPS-Provider erzwingen
+);
+    LatLng currentPositiongps = LatLng(positiongps.latitude, positiongps.longitude);
 
     //ENTKOMMENTIEREN FÜR NETZWERKPOSITIONIERUNG
     // Position position = await Geolocator.getCurrentPosition(
     //     desiredAccuracy: LocationAccuracy.low);
 
     //save neuer Position
-    _saveManualPosition(currentPosition);
+    _saveManualPosition(currentPositionhigh,1);
+    //_saveManualPosition(currentPositionmedium,2);
+    _saveManualPosition(currentPositiongps,3);
 
     setState(() {
-      _mapController.move(currentPosition, 15);
+      _mapController.move(currentPositionhigh, 15);
     });
   }
 
@@ -215,24 +255,40 @@ class _GpsPageState extends State<GpsPage> {
       return;
     }
 
-    Position position = await Geolocator.getCurrentPosition(
+     Position positionhigh = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
-    LatLng currentPosition = LatLng(position.latitude, position.longitude);
+    LatLng currentPositionhigh = LatLng(positionhigh.latitude, positionhigh.longitude);
+
+    // Position positionmedium = await Geolocator.getCurrentPosition(
+    //     desiredAccuracy: LocationAccuracy.medium);
+    // LatLng currentPositionmedium = LatLng(positionmedium.latitude, positionmedium.longitude);
+
+    Position positiongps = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.bestForNavigation,
+        forceAndroidLocationManager: true,
+  );
+    LatLng currentPositiongps = LatLng(positiongps.latitude, positiongps.longitude);
 
     //ENTKOMMENTIEREN FÜR NETZWERKPOSITIONIERUNG
     // Position position = await Geolocator.getCurrentPosition(
     //     desiredAccuracy: LocationAccuracy.low);
 
     //save neuer Position
-    _saveAutoPosition(currentPosition);
+    _saveAutoPosition(currentPositionhigh,1);
+    //_saveAutoPosition(currentPositionmedium,2);
+    _saveAutoPosition(currentPositiongps,3);
   }
 
 // Alle Positionen löschen
   Future<void> _clearSavedPositions() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _manSavedPositions.clear();
-      _autoSavedPositions.clear();
+      _manSavedPositionsgps.clear();
+      //_manSavedPositionsmedium.clear();
+      _manSavedPositionshigh.clear();
+      _autoSavedPositionsgps.clear();
+      //_autoSavedPositionsmedium.clear();
+      _autoSavedPositionshigh.clear();
     });
     await prefs.remove('autoSavedPositions');
     await prefs.remove('manSavedPositions');
@@ -274,7 +330,7 @@ class _GpsPageState extends State<GpsPage> {
           ),
           MarkerLayer(
               // MARKER LAYER MANUELLE POSITIONEN
-              markers: _manSavedPositions
+              markers: _manSavedPositionsgps
                   .asMap()
                   .map((index, entry) {
                     LatLng location = LatLng(entry['position']['latitude'],
@@ -298,7 +354,7 @@ class _GpsPageState extends State<GpsPage> {
                   .toList()),
           MarkerLayer(
               // MARKER LAYER AUTOMATISCH ERFASSTE POSITIONEN
-              markers: _autoSavedPositions
+              markers: _autoSavedPositionsgps
                   .asMap()
                   .map((index, entry) {
                     LatLng location = LatLng(entry['position']['latitude'],

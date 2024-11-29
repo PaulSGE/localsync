@@ -35,20 +35,32 @@ class _GpsPageState extends State<GpsPage> {
     // _loadSavedPositions();
   }
 
+  // List<LatLng> hardcodedRoute = [
+  //   LatLng(51.448012847547375, 7.270595761134885),
+  //   LatLng(51.44705592367576, 7.26771353140143),
+  //   LatLng(51.44619271272524, 7.268263146561089),
+  //   LatLng(51.44511025056258, 7.265097363317558),
+  //   LatLng(51.44419551359768, 7.262285408755903),
+  //   LatLng(51.443331828986615, 7.263037989043566),
+  //   LatLng(51.443011665886154, 7.26312160907553),
+  //   LatLng(51.442757454671685, 7.262379331292123),
+  //   LatLng(51.44264972003007, 7.2618247985997755),
+  //   LatLng(51.443056367671204, 7.261458130615873),
+  //   LatLng(51.44372055195047, 7.260958138979937),
+  //   LatLng(51.44372850409007, 7.2611495160850845),
+  // ];
   List<LatLng> hardcodedRoute = [
-    LatLng(51.448012847547375, 7.270595761134885),
-    LatLng(51.44705592367576, 7.26771353140143),
-    LatLng(51.44619271272524, 7.268263146561089),
-    LatLng(51.44511025056258, 7.265097363317558),
-    LatLng(51.44419551359768, 7.262285408755903),
-    LatLng(51.443331828986615, 7.263037989043566),
-    LatLng(51.443011665886154, 7.26312160907553),
-    LatLng(51.442757454671685, 7.262379331292123),
-    LatLng(51.44264972003007, 7.2618247985997755),
-    LatLng(51.443056367671204, 7.261458130615873),
-    LatLng(51.44372055195047, 7.260958138979937),
-    LatLng(51.44372850409007, 7.2611495160850845),
-  ];
+    LatLng(51.48074300066493, 7.2024647506703365),
+    LatLng(51.48107741030816, 7.200381581020143),
+    LatLng(51.48292149509374, 7.198745068238816),
+    LatLng(51.48452986775526, 7.199470460696994),
+    LatLng(51.48447794157529, 7.197420420787549),
+    LatLng(51.48417193585189, 7.195545515252949),
+    LatLng(51.483412377054464, 7.195448991243106),
+    LatLng(51.48189547288189, 7.196202310663793),
+    LatLng(51.47985155370322, 7.1985365758347495),
+    LatLng(51.48061152231296, 7.201846779316889)
+    ];
 
   void _exportData() async {
     String jsonManuallyCapturedhigh = jsonEncode(_manSavedPositionshigh);
@@ -131,7 +143,7 @@ class _GpsPageState extends State<GpsPage> {
     }
 
     timer = Timer.periodic(
-        Duration(seconds: 5), (Timer t) => _automaticallyGetCurrentLocation());
+        const Duration(seconds: 10), (Timer t) => _automaticallyGetCurrentLocation());
   }
 
   Future<void> _saveAutoPosition(LatLng position,int art) async {
@@ -311,7 +323,7 @@ class _GpsPageState extends State<GpsPage> {
         mapController: _mapController,
         options: MapOptions(
           center: LatLng(
-              51.44750116717069, 7.271411812287161), // Hochschule Location
+              51.48259503039647, 7.1985830871521665),
           zoom: 15,
         ),
         children: [

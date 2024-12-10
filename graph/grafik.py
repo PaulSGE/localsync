@@ -90,6 +90,7 @@ interpolated_positions, interpolated_times = interpolate_positions(groundtruth)
 def plot_combined_cdfs(recorded_positions, interpolated_positions):
     plt.figure(figsize=(10, 8))
     labels = ["Low", "Medium","High", "Location Manager"]
+    color = ["blue", "orange" , "green" , "red"]
 
     for idx, variant in enumerate(recorded_positions):
         errors = calculate_position_error(interpolated_positions, variant)
@@ -97,7 +98,7 @@ def plot_combined_cdfs(recorded_positions, interpolated_positions):
         cdf = np.arange(1, len(sorted_errors) + 1) / len(sorted_errors)
 
         # Plot der aktuellen Variante
-        plt.plot(sorted_errors, cdf, label=f"{labels[idx]} (CDF)")
+        plt.plot(sorted_errors, cdf, label=f"{labels[idx]}", color=color[idx])
 
         # Konfidenzlevel berechnen und ausgeben
         conf_50 = np.percentile(sorted_errors, 50)
@@ -122,12 +123,14 @@ def plot_paths(groundtruth, recorded_positions):
     gt_lon = [point['longitude'] for point in groundtruth]
     plt.plot(gt_lon, gt_lat, label="Groundtruth", marker="o")
 
-    labels = ["Low", "Medium","High", "Location Manager"]  # Labels für alle Varianten
+    labels = ["Low", "Medium","High", "Location Manager"]
+    color = ["blue", "orange" , "green" , "red"]
+
     # Aufgezeichnete Positionen
     for idx, variant in enumerate(recorded_positions):
         rec_lat = [point['position']['latitude'] for point in variant]
         rec_lon = [point['position']['longitude'] for point in variant]
-        plt.plot(rec_lon, rec_lat, label=labels[idx], linestyle="--")
+        plt.plot(rec_lon, rec_lat, label=labels[idx], linestyle="--", color=color[idx])
 
     plt.xlabel("Longitude")
     plt.ylabel("Latitude")

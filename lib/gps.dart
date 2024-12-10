@@ -21,8 +21,8 @@ class _GpsPageState extends State<GpsPage> {
   List<Map<String, dynamic>> _manSavedPositionshigh = [];
   List<Map<String, dynamic>> _autoSavedPositionshigh = [];
 
-  //List<Map<String, dynamic>> _manSavedPositionsmedium = [];
-  //List<Map<String, dynamic>> _autoSavedPositionsmedium = [];
+  List<Map<String, dynamic>> _manSavedPositionsmedium = [];
+  List<Map<String, dynamic>> _autoSavedPositionsmedium = [];
 
   List<Map<String, dynamic>> _manSavedPositionsgps = [];
   List<Map<String, dynamic>> _autoSavedPositionsgps = [];
@@ -50,24 +50,24 @@ class _GpsPageState extends State<GpsPage> {
   //   LatLng(51.44372850409007, 7.2611495160850845),
   // ];
   List<LatLng> hardcodedRoute = [
-    LatLng(51.48074300066493, 7.2024647506703365),
-    LatLng(51.48107741030816, 7.200381581020143),
-    LatLng(51.48292149509374, 7.198745068238816),
-    LatLng(51.48452986775526, 7.199470460696994),
-    LatLng(51.48447794157529, 7.197420420787549),
-    LatLng(51.48417193585189, 7.195545515252949),
-    LatLng(51.483412377054464, 7.195448991243106),
-    LatLng(51.48189547288189, 7.196202310663793),
-    LatLng(51.47985155370322, 7.1985365758347495),
-    LatLng(51.48061152231296, 7.201846779316889)
-    ];
+    LatLng(51.48200485821175, 7.216148843149383),
+    LatLng(51.48204319662747, 7.216678718211532),
+    LatLng(51.48209191756133, 7.217137571796989),
+    LatLng(51.48250517188795, 7.217218411866542),
+    LatLng(51.482458120861814, 7.217657570045277),
+    LatLng(51.48213668960578, 7.21802738591002),
+    LatLng(51.48136966956355, 7.218356479317629),
+    LatLng(51.48093039523358, 7.218513990168929),
+    LatLng(51.48078695941613, 7.21727660165772),
+    LatLng(51.48105416276181, 7.217162039327305)
+  ];
 
   void _exportData() async {
     String jsonManuallyCapturedhigh = jsonEncode(_manSavedPositionshigh);
-    //String jsonManuallyCapturedmedium = jsonEncode(_manSavedPositionsmedium);
+    String jsonManuallyCapturedmedium = jsonEncode(_manSavedPositionsmedium);
     String jsonManuallyCapturedgps = jsonEncode(_manSavedPositionsgps);
     String jsonAutoCapturedhigh = jsonEncode(_autoSavedPositionshigh);
-    //String jsonAutoCapturedmedium = jsonEncode(_autoSavedPositionsmedium);
+    String jsonAutoCapturedmedium = jsonEncode(_autoSavedPositionsmedium);
     String jsonAutoCapturedgps = jsonEncode(_autoSavedPositionsgps);
     String jsonHardcodeRoute = jsonEncode(hardcodedRoute);
 
@@ -76,8 +76,8 @@ class _GpsPageState extends State<GpsPage> {
     Map<String, dynamic> requestBody = {
       "manuallyCapturedhigh": jsonManuallyCapturedhigh,
       "autoCapturedhigh": jsonAutoCapturedhigh,
-      //"manuallyCapturedmedium": jsonManuallyCapturedmedium,
-      //"autoCapturedmedium": jsonAutoCapturedmedium,
+      "manuallyCapturedmedium": jsonManuallyCapturedmedium,
+      "autoCapturedmedium": jsonAutoCapturedmedium,
       "manuallyCapturedgps": jsonManuallyCapturedgps,
       "autoCapturedgps": jsonAutoCapturedgps,
       "hardCodedRouteh": jsonHardcodeRoute,
@@ -120,11 +120,11 @@ class _GpsPageState extends State<GpsPage> {
       },
       'timestamp': DateTime.now().toIso8601String(),
     };
-    if(art == 1){
+    if (art == 1) {
       _manSavedPositionshigh.add(newEntry);
-    }else if(art == 2){
-      //_manSavedPositionsmedium.add(newEntry);
-    }else if(art == 3){
+    } else if (art == 2) {
+      _manSavedPositionsmedium.add(newEntry);
+    } else if (art == 3) {
       _manSavedPositionsgps.add(newEntry);
     }
   }
@@ -142,11 +142,11 @@ class _GpsPageState extends State<GpsPage> {
       return;
     }
 
-    timer = Timer.periodic(
-        const Duration(seconds: 10), (Timer t) => _automaticallyGetCurrentLocation());
+    timer = Timer.periodic(const Duration(seconds: 15),
+        (Timer t) => _automaticallyGetCurrentLocation());
   }
 
-  Future<void> _saveAutoPosition(LatLng position,int art) async {
+  Future<void> _saveAutoPosition(LatLng position, int art) async {
     Map<String, dynamic> newEntry = {
       'position': {
         'latitude': position.latitude,
@@ -154,11 +154,11 @@ class _GpsPageState extends State<GpsPage> {
       },
       'timestamp': DateTime.now().toString()
     };
-    if(art == 1){
+    if (art == 1) {
       _autoSavedPositionshigh.add(newEntry);
-    }else if(art == 2){
-      //_autoSavedPositionsmedium.add(newEntry);
-    }else if(art == 3){
+    } else if (art == 2) {
+      _autoSavedPositionsmedium.add(newEntry);
+    } else if (art == 3) {
       _autoSavedPositionsgps.add(newEntry);
     }
   }
@@ -201,29 +201,31 @@ class _GpsPageState extends State<GpsPage> {
     }
 
     Position positionhigh = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high, forceAndroidLocationManager: true,
-        );
-    LatLng currentPositionhigh = LatLng(positionhigh.latitude, positionhigh.longitude);
+      desiredAccuracy: LocationAccuracy.high,
+    );
+    LatLng currentPositionhigh =
+        LatLng(positionhigh.latitude, positionhigh.longitude);
 
-    // Position positionmedium = await Geolocator.getCurrentPosition(
-    //     desiredAccuracy: LocationAccuracy.medium, forceAndroidLocationManager: true,
-    //     );
-    // LatLng currentPositionmedium = LatLng(positionmedium.latitude, positionmedium.longitude);
+    Position positionmedium = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.medium,
+    );
+    LatLng currentPositionmedium =
+        LatLng(positionmedium.latitude, positionmedium.longitude);
 
     Position positiongps = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.bestForNavigation,
-  forceAndroidLocationManager: true,// GPS-Provider erzwingen
-);
-    LatLng currentPositiongps = LatLng(positiongps.latitude, positiongps.longitude);
+      desiredAccuracy: LocationAccuracy.low,
+    );
+    LatLng currentPositiongps =
+        LatLng(positiongps.latitude, positiongps.longitude);
 
     //ENTKOMMENTIEREN FÜR NETZWERKPOSITIONIERUNG
     // Position position = await Geolocator.getCurrentPosition(
     //     desiredAccuracy: LocationAccuracy.low);
 
     //save neuer Position
-    _saveManualPosition(currentPositionhigh,1);
-    //_saveManualPosition(currentPositionmedium,2);
-    _saveManualPosition(currentPositiongps,3);
+    _saveManualPosition(currentPositionhigh, 1);
+    _saveManualPosition(currentPositionmedium, 2);
+    _saveManualPosition(currentPositiongps, 3);
 
     setState(() {
       _mapController.move(currentPositionhigh, 15);
@@ -267,28 +269,32 @@ class _GpsPageState extends State<GpsPage> {
       return;
     }
 
-     Position positionhigh = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
-    LatLng currentPositionhigh = LatLng(positionhigh.latitude, positionhigh.longitude);
-
-    // Position positionmedium = await Geolocator.getCurrentPosition(
-    //     desiredAccuracy: LocationAccuracy.medium);
-    // LatLng currentPositionmedium = LatLng(positionmedium.latitude, positionmedium.longitude);
+    Position positionhigh = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 20));
+    LatLng currentPositionhigh =
+        LatLng(positionhigh.latitude, positionhigh.longitude);
 
     Position positiongps = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.bestForNavigation,
-        forceAndroidLocationManager: true,
-  );
-    LatLng currentPositiongps = LatLng(positiongps.latitude, positiongps.longitude);
+      desiredAccuracy: LocationAccuracy.medium,
+    );
+    LatLng currentPositiongps =
+        LatLng(positiongps.latitude, positiongps.longitude);
+
+    Position positionmedium = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.low,
+        timeLimit: Duration(seconds: 20),);
+    LatLng currentPositionmedium =
+        LatLng(positionmedium.latitude, positionmedium.longitude);
 
     //ENTKOMMENTIEREN FÜR NETZWERKPOSITIONIERUNG
     // Position position = await Geolocator.getCurrentPosition(
     //     desiredAccuracy: LocationAccuracy.low);
 
     //save neuer Position
-    _saveAutoPosition(currentPositionhigh,1);
-    //_saveAutoPosition(currentPositionmedium,2);
-    _saveAutoPosition(currentPositiongps,3);
+    _saveAutoPosition(currentPositionhigh, 1);
+    _saveAutoPosition(currentPositionmedium, 2);
+    _saveAutoPosition(currentPositiongps, 3);
   }
 
 // Alle Positionen löschen
@@ -296,10 +302,10 @@ class _GpsPageState extends State<GpsPage> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _manSavedPositionsgps.clear();
-      //_manSavedPositionsmedium.clear();
+      _manSavedPositionsmedium.clear();
       _manSavedPositionshigh.clear();
       _autoSavedPositionsgps.clear();
-      //_autoSavedPositionsmedium.clear();
+      _autoSavedPositionsmedium.clear();
       _autoSavedPositionshigh.clear();
     });
     await prefs.remove('autoSavedPositions');
@@ -322,23 +328,36 @@ class _GpsPageState extends State<GpsPage> {
       body: FlutterMap(
         mapController: _mapController,
         options: MapOptions(
-          center: LatLng(
-              51.48259503039647, 7.1985830871521665),
-          zoom: 15,
+          center: LatLng(51.48162670374581, 7.2172610142431655),
+          zoom: 17,
         ),
         children: [
           TileLayer(
-            urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-            subdomains: const ['a', 'b', 'c'],
+            urlTemplate: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+            subdomains: const ['a', 'b', 'c','d'],
           ),
           PolylineLayer(
             polylines: [
               Polyline(
                 points: hardcodedRoute,
-                color: Colors.red,
-                strokeWidth: 6,
+                color: const Color.fromARGB(255, 150, 150, 150),
+                strokeWidth: 2,
               ),
             ],
+          ),
+          MarkerLayer(
+            markers: hardcodedRoute.map((point) {
+              return Marker(
+                width: 40.0,
+                height: 40.0,
+                point: point,
+                builder: (ctx) => const Icon(
+                  Icons.location_on,
+                  color: Color.fromARGB(255, 235, 81, 70),
+                  size: 30,
+                ),
+              );
+            }).toList(),
           ),
           MarkerLayer(
               // MARKER LAYER MANUELLE POSITIONEN

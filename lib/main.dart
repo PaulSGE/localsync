@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'start.dart';
 import 'gps.dart';
+import 'location_app.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
@@ -36,8 +37,9 @@ class _HomePageState extends State<HomePage> {
 
   //Seiten einbinden
   final List<Widget> _pages = [
-    const StartPage(),
+    const MapScreen(),
     const GpsPage(),
+    LocationApp()
   ];
 
   void _onItemTapped(int index) {
@@ -53,13 +55,14 @@ class _HomePageState extends State<HomePage> {
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Startseite',
+            icon: Icon(Icons.route),
+            label: 'Routen',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.location_on),
-            label: 'GPS',
+            label: 'locate',
           ),
+          BottomNavigationBarItem(icon: Icon(Icons.gps_fixed),label: "GPS",),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.blue,

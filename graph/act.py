@@ -47,12 +47,13 @@ data = [
 measured_data = data[0]
 groundtruth = data[1]
 
-# Helper-Funktion: Zeitstempel zu Sekunden
+#Zeit in Sekunden umrechnen
 def timestamp_to_seconds(timestamp):
     dt = datetime.fromisoformat(timestamp)
+    #print(dt.timestamp())
     return dt.timestamp()
 
-# Helper-Funktion: Interpolierte Position anhand der Groundtruth
+#Interpolierte Position mittels der Groundtruth
 def interpolate_groundtruth(query_time):
     query_seconds = timestamp_to_seconds(query_time)
 
@@ -60,8 +61,11 @@ def interpolate_groundtruth(query_time):
     groundtruth_timestamps = np.linspace(0, 1, len(groundtruth))  # Normalisierte Zeit zwischen den Punkten
     groundtruth_lats = [entry["coordinates"][1] for entry in groundtruth]
     groundtruth_lons = [entry["coordinates"][0] for entry in groundtruth]
+    #print(groundtruth_timestamps)
+    #print(groundtruth_lons)
+    #print(groundtruth_lats)
 
-    # Erstelle die Interpolations-Funktionen
+    #Funktionen für Interpolation erstellen
     lat_interp = interp1d(groundtruth_timestamps, groundtruth_lats, kind="linear", fill_value="extrapolate")
     lon_interp = interp1d(groundtruth_timestamps, groundtruth_lons, kind="linear", fill_value="extrapolate")
 
@@ -69,6 +73,10 @@ def interpolate_groundtruth(query_time):
     measured_start = timestamp_to_seconds(measured_data[0]["timestamp"])
     measured_end = timestamp_to_seconds(measured_data[-1]["timestamp"])
     query_normalized = (query_seconds - measured_start) / (measured_end - measured_start)
+    #print(measured_start)
+    #print(measured_end)
+    #print(query_normalized)
+
 
     # Interpolierte Werte abrufen
     interpolated_lat = lat_interp(query_normalized)
